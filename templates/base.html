@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{{ url_for('static', filename='img/fav/fav.ico') }}" type="image">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/fav/apple-touch-icon.png') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/fav/favicon-32x32.png') }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='img/fav/favicon-16x16.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <title>{% block title %}YaCut - укоротитель ссылок{% endblock %}</title>
+</head>
+
+<body>
+  <header class="pb-5">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm">
+      <div class="container">
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="nav nav-pills">
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}" href="{{ url_for('main.index') }}">Главная</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'main.files_upload' %}active{% endif %}" href="{{ url_for('main.files_upload') }}">Загрузка файлов</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  
+  <footer class="fixed-bottom border-top text-center py-3">
+    <p>Укоротитель ссылок YaCut</p>
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Ошибка {{ error_code }} - YaCut{% endblock %}
+
+{% block content %}
+<section class="container my-5 px-4">
+  <div class="row">
+    <div class="col-sm"></div>
+    <div class="col-sm text-center">
+      <h1 class="display-1">{{ error_code }}</h1>
+      <h2 class="mb-4">{{ error_message }}</h2>
+      <a href="{{ url_for('main.index') }}" class="btn btn-primary">Вернуться на главную</a>
+    </div>
+    <div class="col-sm"></div>
+  </div>
+</section>
+{% endblock %}
