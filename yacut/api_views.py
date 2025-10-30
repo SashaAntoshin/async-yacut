@@ -1,67 +1,25 @@
-from flask import jsonify, Blueprint, request
-from yacut import db
-from .models import URLMap
-from .utils import get_unique_short_id
-from .error_handlers import InvalidAPIUsage
+from http import HTTPStatus
 
-ALLOWED_CHAR = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+from flask import Blueprint, jsonify, request
+
+from yacut import db
+
+from .constants import (
+    EMPTY_REQUEST_BODY,
+    INVALID_CONTENT_TYPE,
+    INVALID_JSON,
+    MAX_SHORT_ID_LENGTH,
+    SHORT_ID_PATTERN,
+)
+from .error_handlers import InvalidAPIUsage
+from .models import URLMap
+
 api_bp = Blueprint("api", __name__)
 
 
-def validate_request_data():
-    """Валидация данных запроса"""
-    if not request.data:
-        raise InvalidAPIUsage("Отсутствует тело запроса")
-
-    if request.content_type != "application/json":
-        raise InvalidAPIUsage("Неверный Content-Type")
-
-    try:
-        data = request.get_json()
-    except Exception:
-        raise InvalidAPIUsage("Некорректный JSON")
-
-    if not data:
-        raise InvalidAPIUsage("Отсутствует тело запроса")
-
-    return data
-
-
-def validate_custom_id(custom_id):
-    """Валидация custom_id"""
-    if len(custom_id) > 16:
-        raise InvalidAPIUsage("Указано недопустимое имя для короткой ссылки")
-
-    if not all(char in ALLOWED_CHAR for char in custom_id):
-        raise InvalidAPIUsage("Указано недопустимое имя для короткой ссылки")
-
-
-def check_custom_id_availability(custom_id):
-    """Проверка доступности custom_id"""
-    existing_url = URLMap.query.filter_by(short=custom_id).first()
-    if existing_url:
-        raise InvalidAPIUsage(
-            "Предложенный вариант короткой ссылки уже существует."
-        )
-
-
-def validate_url_data(data):
-    """Валидация URL данных"""
-    original_url = data.get("url")
-    custom_id = data.get("custom_id")
-
-    if not original_url:
-        raise InvalidAPIUsage('"url" является обязательным полем!')
-
-    if not original_url.startswith(("http://", "https://")):
-        raise InvalidAPIUsage("Некорректный URL")
-
-    return original_url, custom_id
-
-
-def create_url_map(original_url, short_id):
+def create_url_map(original_url, short):
     """Создание и сохранение URLMap"""
-    url_map = URLMap(original=original_url, short=short_id)
+    url_map = URLMap(original=original_url, short=short)
     db.session.add(url_map)
     db.session.commit()
     return url_map
@@ -71,36 +29,63 @@ def create_url_map(original_url, short_id):
 def create_short_link():
     """Создание короткой ссылки"""
 
-    data = validate_request_data()
+    if not request.data:
+        raise InvalidAPIUsage(EMPTY_REQUEST_BODY)
 
-    original_url, custom_id = validate_url_data(data)
+    if request.content_type != "application/json":
+        raise InvalidAPIUsage(INVALID_CONTENT_TYPE)
+
+    data = request.get_json(silent=True)
+    if data is None:
+        raise InvalidAPIUsage(INVALID_JSON)
+
+    if not data:
+        raise InvalidAPIUsage(EMPTY_REQUEST_BODY)
+
+    original_url = data.get("url")
+    custom_id = data.get("custom_id")
+
+    if not original_url:
+        raise InvalidAPIUsage('"url" является обязательным полем!')
+
+    if not original_url.startswith(("http://", "https://")):
+        raise InvalidAPIUsage("Некорректный URL")
 
     if custom_id:
-        validate_custom_id(custom_id)
-        check_custom_id_availability(custom_id)
-        short_id = custom_id
+        if len(custom_id) > MAX_SHORT_ID_LENGTH:
+            raise InvalidAPIUsage(
+                "Указано недопустимое имя для короткой ссылки"
+            )
+
+        if not SHORT_ID_PATTERN.match(custom_id):
+            raise InvalidAPIUsage(
+                "Указано недопустимое имя для короткой ссылки"
+            )
+
+        existing_url = URLMap.get_by_short(custom_id)
+        if existing_url:
+            raise InvalidAPIUsage(
+                "Предложенный вариант короткой ссылки уже существует."
+            )
+        short = custom_id
     else:
-        short_id = get_unique_short_id()
+        short = URLMap.get_unique_short_id()
 
-    create_url_map(original_url, short_id)
+    try:
+        url_map = URLMap.create(original=original_url, short=short)
+    except Exception:
+        db.session.rollback()
+        raise InvalidAPIUsage("При сохранении ссылки произошла ошибка!")
 
-    return (
-        jsonify(
-            {
-                "short_link": f"http://localhost/{short_id}",  # noqa: E231
-                "url": original_url,  # noqa: E231
-            }  # noqa: E231
-        ),
-        201,
-    )
+    return jsonify(url_map.to_dict()), HTTPStatus.CREATED
 
 
-@api_bp.route("/id/<short_id>/", methods=["GET"])
-def get_original_url(short_id):
+@api_bp.route("/id/<short>/", methods=["GET"])
+def get_original_url(short):
     """Получение оригинальной ссылки по короткому ID"""
-    url_map = URLMap.query.filter_by(short=short_id).first()
+    url_map = URLMap.get_by_short(short)
 
     if not url_map:
-        raise InvalidAPIUsage("Указанный id не найден", 404)
+        raise InvalidAPIUsage("Указанный id не найден", HTTPStatus.NOT_FOUND)
 
     return jsonify({"url": url_map.original})

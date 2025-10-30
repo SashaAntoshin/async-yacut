@@ -1,10 +1,14 @@
-from flask import render_template, jsonify, request
+from http import HTTPStatus
+
+from flask import jsonify, render_template, request
+
+from . import db
 
 
 class InvalidAPIUsage(Exception):
     """Класс обработки ошибок."""
 
-    status_code = 400
+    status_code = HTTPStatus.BAD_REQUEST
 
     def __init__(self, message, status_code=None):
         super().__init__()
@@ -22,21 +26,24 @@ def init_error_handlers(app):
     def handle_invalid_api_usage(error):
         return jsonify(error.to_dict()), error.status_code
 
-    @app.errorhandler(404)
+    @app.errorhandler(HTTPStatus.NOT_FOUND)
     def page_not_found(error):
         """Страница не найдена."""
         if request.path.startswith("/api/"):
-            return jsonify({"message": "Указаный id не найден"}), 404
+            return (
+                jsonify({"message": "Указаный id не найден"}),
+                HTTPStatus.NOT_FOUND,
+            )
         return (
             render_template(
                 "error.html",
-                error_code=404,
+                error_code=HTTPStatus.NOT_FOUND,
                 error_message="Страница не найдена",
             ),
-            404,
+            HTTPStatus.NOT_FOUND,
         )
 
-    @app.errorhandler(500)
+    @app.errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
     def intrnal_error(error):
         """Ошибка сервера."""
         if request.path.startswith("/api/"):
@@ -44,13 +51,13 @@ def init_error_handlers(app):
         return (
             render_template(
                 "error.html",
-                error_code=500,
+                error_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 error_message="Внутренняя ошибка сервера",
             ),
-            500,
+            HTTPStatus.INTERNAL_SERVER_ERROR,
         )
 
-    @app.errorhandler(400)
+    @app.errorhandler(HTTPStatus.BAD_REQUEST)
     def bad_request(error):
         """Не корректный запрос."""
         if request.path.startswith("/api/"):
@@ -58,8 +65,26 @@ def init_error_handlers(app):
         return (
             render_template(
                 "error.html",
-                error_code=400,
+                error_code=HTTPStatus.BAD_REQUEST,
                 error_message="Некорректный запрос",
             ),
-            400,
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    @app.errorhandler(Exception)
+    def handle_database_error(error):
+        """Обработка ошибок базы данных."""
+        db.session.rollback()
+        if request.path.startswith("/api/"):
+            return (
+                jsonify({"message": "Ошибка сервера"}),
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+        return (
+            render_template(
+                "error.html",
+                error_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                error_message="Внутренняя ошибка сервера",
+            ),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
         )

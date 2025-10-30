@@ -1,62 +1,56 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="container my-5 px-4">
-  <h1 class="text-center"><span style="color:red">Ya</span>Cut</h1>
-  <p class="text-center my-4">
-    Создайте короткую ссылку автоматически или предложите свой вариант
-  </p>
+  <section class="container my-5 px-4">
+    <h1 class="text-center"><span style="color:red">Ya</span>Cut</h1>
+    <p class="text-center my-4">
+      Создайте короткую ссылку автоматически или предложите свой вариант
+    </p>
 
-  <div class="container">
-    <div class="row my-3">
-      <div class="col-sm"></div>
-      <div class="col-sm">
-        <form method="POST">
-          {{ form.hidden_tag() }}
-          <div>
+    <div class="container">
+      <div class="row my-3">
+        <div class="col-sm"></div>
+        <div class="col-sm">
+          <form method="POST">
+            {{ form.hidden_tag() }}
             <div>
-              {{ form.original_link(class="form-control form-control-lg py-2 mb-3", placeholder="Длинная ссылка") }}
-              {% for error in form.original_link.errors %}
-                <p><span style="color:red">{{ error }}</span></p>
-              {% endfor %}
+              <div>
+                {{ form.original_link(class="form-control form-control-lg py-2 mb-3", placeholder="Длинная ссылка") }}
+                {% for error in form.original_link.errors %}
+                  <p><span style="color:red">{{ error }}</span></p>
+                {% endfor %}
+              </div>
+              <div>
+                {{ form.custom_id(class="form-control form-control-lg py-2 mb-3", placeholder="Ваш вариант короткой ссылки") }}
+                {% for error in form.custom_id.errors %}
+                  <p><span style="color:red">{{ error }}</span></p>
+                {% endfor %}
+              </div>
+              {{ form.submit(class="btn btn-primary") }}
             </div>
-            <div>
-              {{ form.custom_id(class="form-control form-control-lg py-2 mb-3", placeholder="Ваш вариант короткой ссылки") }}
-              {% for error in form.custom_id.errors %}
-                <p><span style="color:red">{{ error }}</span></p>
-              {% endfor %}
-            </div>
-            {{ form.submit(class="btn btn-primary") }}
-          </div>
-        </form>
+          </form>
+        </div>
+        <div class="col-sm"></div>
       </div>
-      <div class="col-sm"></div>
     </div>
-  </div>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
+    {% if full_short_url %}
       <div class="container">
         <div class="row">
           <div class="col-sm"></div>
           <div class="col-sm">
-            {% for category, message in messages %}
-              <p class="text-center">
-                <h5 class="text-center">{{ message }}</h5>
-                {% if short_url %}
-                  <p class="text-center">
-                    <a href="{{ url_for('main.redirect_to_url', short_id=short_url, _external=True) }}" target="_blank">
-                      {{ url_for('main.redirect_to_url', short_id=short_url, _external=True) }}
-                    </a>
-                  </p>
-                {% endif %}
+            <div class="alert alert-success text-center" role="alert">
+              <h5 class="mb-3">Ваша новая ссылка готова!</h5>
+              <p class="mb-0">
+                <a href="{{ full_short_url }}" target="_blank">
+                  {{ full_short_url }}
+                </a>
               </p>
-            {% endfor %}
+            </div>
           </div>
           <div class="col-sm"></div>
         </div>
       </div>
     {% endif %}
-  {% endwith %}
-</section>
+  </section>
 {% endblock %}

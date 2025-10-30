@@ -1,80 +1,62 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="container my-5 px-4">
-  <h1 class="text-center"><span style="color:red">Ya</span>Cut</h1>
-  <p class="text-center my-4">
-    Загрузите файлы на Яндекс Диск
-  </p>
+  <section class="container my-5 px-4">
+    <h1 class="text-center"><span style="color:red">Ya</span>Cut</h1>
+    <p class="text-center my-4">
+      Загрузите файлы на Яндекс Диск
+    </p>
 
-  <div class="container">
-    <div class="row my-3">
-      <div class="col-sm"></div>
-      <div class="col-sm">
-        <form method="POST" enctype="multipart/form-data">
-          {{ form.hidden_tag() }}
-          <div>
+    <div class="container">
+      <div class="row my-3">
+        <div class="col-sm"></div>
+        <div class="col-sm">
+          <form method="POST" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
             <div>
-              {{ form.files(class="form-control-file py-2 mb-3", multiple="multiple") }}
-              {% for error in form.files.errors %}
-                <p><span style="color:red">{{ error }}</span></p>
-              {% endfor %}
+              <div>
+                {{ form.files(class="form-control-file py-2 mb-3", multiple="multiple") }}
+                {% for error in form.files.errors %}
+                  <p><span style="color:red">{{ error }}</span></p>
+                {% endfor %}
+              </div>
+              {{ form.submit(class="btn btn-primary") }}
             </div>
-            {{ form.submit(class="btn btn-primary") }}
-          </div>
-        </form>
+          </form>
+        </div>
+        <div class="col-sm"></div>
       </div>
-      <div class="col-sm"></div>
     </div>
-  </div>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="container">
+    {% if file_links %}
+      <div class="container mt-4">
         <div class="row">
           <div class="col-sm"></div>
           <div class="col-sm">
-            {% for category, message in messages %}
-              <p class="text-center">
-                <h5 class="text-center">{{ message }}</h5>
-              </p>
-            {% endfor %}
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Имя файла</th>
+                  <th>Короткая ссылка</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for file in file_links %}
+                  <tr>
+                    <td>{{ file.name }}</td>
+                    <td>
+                      <a href="{{ file.full_short_url }}" target="_blank">
+                        {{ file.full_short_url }}
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
           <div class="col-sm"></div>
         </div>
       </div>
     {% endif %}
-  {% endwith %}
-
-  {% if file_links %}
-  <div class="container mt-4">
-    <div class="row">
-      <div class="col-sm"></div>
-      <div class="col-sm">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>Имя файла</th>
-              <th>Короткая ссылка</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for file in file_links %}
-            <tr>
-              <td>{{ file.name }}</td>
-              <td>
-                <a href="{{ url_for('main.redirect_to_url', short_id=file.short_url, _external=True) }}" target="_blank">
-                  {{ url_for('main.redirect_to_url', short_id=file.short_url, _external=True) }}
-                </a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div class="col-sm"></div>
-    </div>
-  </div>
-  {% endif %}
-</section>
+  </section>
 {% endblock %}

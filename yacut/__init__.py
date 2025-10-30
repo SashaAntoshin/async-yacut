@@ -1,6 +1,6 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -16,9 +16,9 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
 
-    from .views import main_bp
     from .api_views import api_bp
     from .error_handlers import init_error_handlers
+    from .views import main_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp, url_prefix="/api")

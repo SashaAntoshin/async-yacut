@@ -1,9 +1,23 @@
+## Автор проекта:
+
+АНТОШИН АЛЕКСАНДР
+
+## Техно - стек:
+
+- **Backend**: Python 3.8+, Flask
+- **База данных**: SQLite/PostgreSQL с SQLAlchemy ORM
+- **Фронтенд**: HTML, Bootstrap, Jinja2
+- **API**: RESTful JSON API
+- **Асинхронность**: aiohttp для работы с внешними API
+- **Загрузка файлов**: Интеграция с Яндекс.Диском
+- **Валидация**: WTForms, регулярные выражения
+
 ### Как запустить проект Yacut:
 
 Клонировать репозиторий и перейти в него в командной строке:
 
 ```
-git clone 
+git clone https://github.com/SashaAntoshin/async-yacut.git
 ```
 
 ```
