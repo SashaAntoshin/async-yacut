@@ -39,7 +39,7 @@ def index():
 
     short = URLMap.get_unique_short_id() if not short else short
 
-    url_map = URLMap.create(original=original_url, short=short)
+    URLMap.create(original=original_url, short=short)
 
     full_short_url = url_for(
         "main.redirect_to_url", short=short, _external=True

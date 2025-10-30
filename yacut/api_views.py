@@ -26,7 +26,7 @@ def create_url_map(original_url, short):
 
 
 @api_bp.route("/id/", methods=["POST"])
-def create_short_link():
+def create_short_link():   # noqa: C901
     """Создание короткой ссылки"""
 
     if not request.data:
