@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from flask import Blueprint, jsonify, request, url_for
+from flask import Blueprint, jsonify, request
 
 from .error_handlers import InvalidAPIUsage
 from .models import URLMap
@@ -26,15 +26,16 @@ def create_short_link():
     if "url" not in data:
         raise InvalidAPIUsage(URL_REQUIRED_FIELD)
     try:
-        url_map = URLMap.create(original=data["url"],
-                                short=data.get("custom_id"))
+        url_map = URLMap.create(
+            original=data["url"], short=data.get("custom_id")
+        )
     except (ValueError, RuntimeError) as e:
         raise InvalidAPIUsage(str(e))
 
     return (
         jsonify(
             {
-                "url": data['url'],
+                "url": data["url"],
                 "short_link": url_map.get_short(),
             }
         ),

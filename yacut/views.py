@@ -7,7 +7,6 @@ from flask import (
     flash,
     redirect,
     render_template,
-    url_for,
 )
 
 from .forms import FileUploadForm, URLForm
@@ -30,8 +29,7 @@ def index():
 
     try:
         url_map = URLMap.create(
-            original=form.original_link.data,
-            short=form.custom_id.data
+            original=form.original_link.data, short=form.custom_id.data
         )
     except (ValueError, RuntimeError) as e:
         flash(str(e), "error")
@@ -56,17 +54,20 @@ def files_upload():
 
     try:
         results = upload_files_async(
-            files, current_app.config.get("DISK_TOKEN"))
+            files, current_app.config.get("DISK_TOKEN")
+        )
 
         file_links = []
         for file, result in zip(files, results):
             filename, download_url = result
             try:
                 url_map = URLMap.create(original=download_url, short=None)
-                file_links.append({
-                    "name": file.filename,
-                    "full_short_url": url_map.get_short()
-                })
+                file_links.append(
+                    {
+                        "name": file.filename,
+                        "full_short_url": url_map.get_short(),
+                    }
+                )
             except (ValueError, RuntimeError) as e:
                 flash(UPLOAD_ERROR.format(str(e)), "error")
         return render_template("files.html", form=form, file_links=file_links)

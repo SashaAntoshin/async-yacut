@@ -50,9 +50,9 @@ class FileUploadForm(FlaskForm):
     files = MultipleFileField(
         FILES,
         validators=[
-        FileRequired(message=MESSAGE),
-        FileSize(max_size=10*1024*1024),
-        FileAllowed(['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt'])
-                    ]
+            FileRequired(message=MESSAGE),
+            FileSize(max_size=10 * 1024 * 1024),
+            FileAllowed(["jpg", "jpeg", "png", "gif", "pdf", "txt"]),
+        ],
     )
     submit = SubmitField(UPLOAD)

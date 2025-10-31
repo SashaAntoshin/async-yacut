@@ -12,6 +12,7 @@ URL_ERROR = "Ошибка получения URL: {}"
 UPLOAD_ERROR = "Ошибка загрузки: {}"
 DOWNLOAD_ERROR = "Ошибка получения download URL: {}"
 
+
 async def upload_files(files, token):
     """Асинхронная загрузка нескольких файлов."""
     async with aiohttp.ClientSession() as session:

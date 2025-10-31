@@ -58,8 +58,8 @@ class URLMap(db.Model):
     def get(short):
         """Найти запись по короткой ссылке."""
         return URLMap.query.filter_by(short=short).first()
-    
+
     def get_short(self):
         """Полная кортка ссылка"""
-        base_url = current_app.config.get('BASE_URL', 'http://localhost')
+        base_url = current_app.config.get("BASE_URL", "http://localhost")
         return f"{base_url}/{self.short}"
