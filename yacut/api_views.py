@@ -36,7 +36,7 @@ def create_short_link():
         jsonify(
             {
                 "url": data["url"],
-                "short_link": url_map.get_short(),
+                "short_link": url_map.get_short_url(),
             }
         ),
         HTTPStatus.CREATED,

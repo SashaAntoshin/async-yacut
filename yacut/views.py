@@ -36,7 +36,7 @@ def index():
         flash(str(e), "error")
         return render_template("index.html", form=form)
 
-    full_short_url = url_map.get_short()
+    full_short_url = url_map.get_short_url()
 
     return render_template(
         "index.html", form=form, full_short_url=full_short_url
@@ -66,7 +66,7 @@ def files_upload():
             file_links.append(
                 {
                     "name": file.filename,
-                    "full_short_url": url_map.get_short(),
+                    "full_short_url": url_map.get_short_url(),
                 }
             )
         except (ValueError, RuntimeError) as e:

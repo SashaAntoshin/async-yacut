@@ -70,6 +70,5 @@ class URLMap(db.Model):
 
     def get_short_url(self):
         """Полная кортка ссылка"""
-        return url_for(
-            "main.redirect_to_url", short=self.short, _external=True
-        )
+        return url_for('main.redirect_to_url',
+                       short=self.short, _external=True)
