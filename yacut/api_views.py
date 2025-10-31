@@ -7,6 +7,7 @@ from .models import URLMap
 
 EMPTY_REQUEST_BODY = "Отсутствует тело запроса"
 URL_REQUIRED_FIELD = '"url" является обязательным полем!'
+NOT_FOUND_ID = "Указанный id не найден"
 
 api_bp = Blueprint("api", __name__)
 
@@ -24,25 +25,17 @@ def create_short_link():
 
     if "url" not in data:
         raise InvalidAPIUsage(URL_REQUIRED_FIELD)
-
-    original_url = data.get("url")
-    short = data.get("custom_id")
-
-    if not short:
-        short = URLMap.get_unique_short_id()
-
     try:
-        url_map = URLMap.create(original=original_url, short=short)
-    except ValueError as e:
+        url_map = URLMap.create(original=data["url"],
+                                short=data.get("custom_id"))
+    except (ValueError, RuntimeError) as e:
         raise InvalidAPIUsage(str(e))
 
     return (
         jsonify(
             {
-                "url": url_map.original,
-                "short_link": url_for(
-                    "main.redirect_to_url", short=url_map.short, _external=True
-                ),
+                "url": data['url'],
+                "short_link": url_map.get_short(),
             }
         ),
         HTTPStatus.CREATED,
@@ -55,6 +48,5 @@ def get_original_url(short):
     url_map = URLMap.get(short)
 
     if not url_map:
-        raise InvalidAPIUsage("Указанный id не найден", HTTPStatus.NOT_FOUND)
-
+        raise InvalidAPIUsage(NOT_FOUND_ID, HTTPStatus.NOT_FOUND)
     return jsonify({"url": url_map.original})

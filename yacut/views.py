@@ -14,6 +14,10 @@ from .forms import FileUploadForm, URLForm
 from .models import URLMap
 from .yandex_disk import upload_files_async
 
+
+SHORT_COMPLETE = "Ваша новая ссылка готова:"
+UPLOAD_ERROR = "Ошибка при загрузке файлов: {}"
+CREATE_SHORT_ERROR = "Ошибка создания ссылки для {}: {}"
 main_bp = Blueprint("main", __name__)
 
 
@@ -24,20 +28,18 @@ def index():
     if not form.validate_on_submit():
         return render_template("index.html", form=form)
 
-    original_url = form.original_link.data
-    short = form.custom_id.data
-
     try:
-        url_map = URLMap.create(original=original_url, short=short)
-    except ValueError as e:
+        url_map = URLMap.create(
+            original=form.original_link.data,
+            short=form.custom_id.data
+        )
+    except (ValueError, RuntimeError) as e:
         flash(str(e), "error")
         return render_template("index.html", form=form)
 
-    full_short_url = url_for(
-        "main.redirect_to_url", short=url_map.short, _external=True
-    )
+    full_short_url = url_map.get_short()
 
-    flash("Ваша новая ссылка готова:", "success")
+    flash(SHORT_COMPLETE)
     return render_template(
         "index.html", form=form, full_short_url=full_short_url
     )
@@ -51,42 +53,27 @@ def files_upload():
         return render_template("files.html", form=form)
 
     files = form.files.data
-    token = current_app.config.get("DISK_TOKEN")
 
     try:
-        results = upload_files_async(files, token)
+        results = upload_files_async(
+            files, current_app.config.get("DISK_TOKEN"))
 
         file_links = []
-        successful_files = []
-
         for file, result in zip(files, results):
             filename, download_url = result
             try:
                 url_map = URLMap.create(original=download_url, short=None)
-                successful_files.append((file, url_map))
-            except ValueError as e:
-                flash(
-                    f"Ошибка создания короткой ссылки для "
-                    f"{file.filename}: {e}",
-                    "error",
-                )
-        file_links = [
-            {
-                "name": file.filename,
-                "full_short_url": url_for(
-                    "main.redirect_to_url", short=url_map.short, _external=True
-                ),
-            }
-            for file, url_map in successful_files
-        ]
-
-        if file_links:
-            flash("Файлы успешно загружены!", "success")
+                file_links.append({
+                    "name": file.filename,
+                    "full_short_url": url_map.get_short()
+                })
+            except (ValueError, RuntimeError) as e:
+                flash(UPLOAD_ERROR.format(str(e)), "error")
         return render_template("files.html", form=form, file_links=file_links)
 
     except ConnectionError as e:
-        flash(f"Ошибка при загрузке файлов: {str(e)}", "error")
-        return render_template("files.html", form=form, file_links=[])
+        flash(CREATE_SHORT_ERROR.format(file.filename, str(e)), "error")
+        return render_template("files.html", form=form)
 
 
 @main_bp.route("/<short>")

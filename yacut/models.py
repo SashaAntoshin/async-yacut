@@ -2,10 +2,11 @@ from datetime import datetime
 import random
 
 from . import db
+from flask import current_app
 
 from .constants import (
     ALLOWED_CHARS,
-    GENERATED_ID_ATTEMPTS,
+    GENERATED_SHORT_ATTEMPTS,
     MAX_SHORT_LENGTH,
     ORIGINAL_LENGTH,
     SHORT_LENGTH,
@@ -15,11 +16,10 @@ from .constants import (
 
 INVALID_SHORT_NAME = "Указано недопустимое имя для короткой ссылки"
 SHORT_ALREADY_EXISTS = "Предложенный вариант короткой ссылки уже существует."
+GENERATE_ERROR = "Не удалось сгенерировать уникальный short ID"
 
 
 class URLMap(db.Model):
-    """Основная модель."""
-
     id = db.Column(db.Integer, primary_key=True)
     original = db.Column(db.String(ORIGINAL_LENGTH), nullable=False)
     short = db.Column(
@@ -28,14 +28,10 @@ class URLMap(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     @staticmethod
-    def create(original, short):
+    def create(original, short=None):
         """Создание и сохранение новой записи URLMap"""
-        if not original or not isinstance(original, str):
-            raise ValueError("Url не может быт пустой строкой.")
         if not short:
             short = URLMap.get_unique_short_id()
-        if not short or not isinstance(short, str):
-            raise ValueError("Короткая ссылка не может быть пустой строкой")
         if len(short) > MAX_SHORT_LENGTH:
             raise ValueError(INVALID_SHORT_NAME)
         if not SHORT_PATTERN.match(short):
@@ -45,26 +41,25 @@ class URLMap(db.Model):
 
         url_map = URLMap(original=original, short=short)
         db.session.add(url_map)
-        db.session.commit()
         return url_map
 
     @staticmethod
     def get_unique_short_id():
         """Генерация уникального короткого ID"""
 
-        for attempt in range(GENERATED_ID_ATTEMPTS):
+        for attempt in range(GENERATED_SHORT_ATTEMPTS):
             short = "".join(random.choices(ALLOWED_CHARS, k=SHORT_LENGTH))
 
             if short not in RESERVED_SHORTS and not URLMap.get(short):
                 return short
-
-        for length in range(SHORT_LENGTH + 1, MAX_SHORT_LENGTH + 1):
-            short = "".join(random.choices(ALLOWED_CHARS, k=length))
-            if short not in RESERVED_SHORTS and not URLMap.get(short):
-                return short
-        raise RuntimeError("Не удалось сгенерировать уникальный short ID")
+        raise RuntimeError(GENERATE_ERROR)
 
     @staticmethod
     def get(short):
         """Найти запись по короткой ссылке."""
         return URLMap.query.filter_by(short=short).first()
+    
+    def get_short(self):
+        """Полная кортка ссылка"""
+        base_url = current_app.config.get('BASE_URL', 'http://localhost')
+        return f"{base_url}/{self.short}"

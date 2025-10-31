@@ -1,10 +1,10 @@
 from flask_wtf import FlaskForm
-from flask_wtf.file import FileRequired
+from flask_wtf.file import FileRequired, FileAllowed, FileSize
 from wtforms import StringField, SubmitField, MultipleFileField
 from wtforms.fields import URLField
 from wtforms.validators import URL, DataRequired, Length, Optional, Regexp
 
-from .constants import ALLOWED_CHARS, MAX_SHORT_LENGTH
+from .constants import MAX_SHORT_LENGTH, SHORT_PATTERN
 
 
 REQUIRED_FIELD_MESSAGE = "Обязательное поле"
@@ -27,6 +27,7 @@ class URLForm(FlaskForm):
         validators=[
             DataRequired(message=REQUIRED_FIELD_MESSAGE),
             URL(message=INVALID_URL_MESSAGE),
+            Length(max=2048),
         ],
     )
     custom_id = StringField(
@@ -35,7 +36,7 @@ class URLForm(FlaskForm):
             Optional(),
             Length(max=MAX_SHORT_LENGTH, message=LENGTH_ERROR_MESSAGE),
             Regexp(
-                f"^[{ALLOWED_CHARS}]*$",
+                SHORT_PATTERN.pattern,
                 message=ID_ERROR_MESSAGE,
             ),
         ],
@@ -47,6 +48,11 @@ class FileUploadForm(FlaskForm):
     """Форма загрузки файлов."""
 
     files = MultipleFileField(
-        FILES, validators=[FileRequired(message=MESSAGE)]
+        FILES,
+        validators=[
+        FileRequired(message=MESSAGE),
+        FileSize(max_size=10*1024*1024),
+        FileAllowed(['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt'])
+                    ]
     )
     submit = SubmitField(UPLOAD)

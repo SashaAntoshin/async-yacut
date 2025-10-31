@@ -2,6 +2,15 @@ import asyncio
 
 import aiohttp
 
+from http import HTTPStatus
+
+
+AUTH_HEADER = "OAuth {}"
+UPLOAD_URL = "https://cloud-api.yandex.net/v1/disk/resources/upload"
+DOWNLOAD_URL = "https://cloud-api.yandex.net/v1/disk/resources/download"
+URL_ERROR = "Ошибка получения URL: {}"
+UPLOAD_ERROR = "Ошибка загрузки: {}"
+DOWNLOAD_ERROR = "Ошибка получения download URL: {}"
 
 async def upload_files(files, token):
     """Асинхронная загрузка нескольких файлов."""
@@ -21,7 +30,7 @@ def upload_files_async(files, token):
 
 async def upload_single_file(session, file, token):
     """Загрузка одного файла на Яндекс Диск."""
-    headers = {"Authorization": f"OAuth {token}"}
+    headers = {"Authorization": AUTH_HEADER.format(token)}
     params = {"path": f"/yacut/{file.filename}", "overwrite": "true"}
 
     upload_url = await get_upload_url(session, headers, params)
@@ -34,14 +43,13 @@ async def upload_single_file(session, file, token):
 async def get_upload_url(session, headers, params):
     """Получение URL для загрузки файла."""
     async with session.get(
-        "https://cloud-api.yandex.net/v1/disk/resources/upload",
+        UPLOAD_URL,
         headers=headers,
         params=params,
     ) as response:
-        if response.status != 200:
-            raise ConnectionError(f"Ошибка получения URL: {response.status}")
-        upload_data = await response.json()
-        return upload_data["href"]
+        if response.status != HTTPStatus.OK:
+            raise ConnectionError(URL_ERROR.format(response.status))
+        return (await response.json())["href"]
 
 
 async def upload_file_content(session, upload_url, headers, file):
@@ -50,20 +58,19 @@ async def upload_file_content(session, upload_url, headers, file):
     async with session.put(
         upload_url, headers=headers, data=file_content
     ) as response:
-        if response.status not in (201, 202):
-            raise ConnectionError(f"Ошибка загрузки: {response.status}")
+        if response.status not in (HTTPStatus.CREATED, HTTPStatus.ACCEPTED):
+            raise ConnectionError(UPLOAD_ERROR.format(response.status))
 
 
 async def get_download_url(session, headers, filename):
     """Получение ссылки для скачивания файла."""
-    url = "https://cloud-api.yandex.net/v1/disk/resources/download"
+    url = DOWNLOAD_URL
     async with session.get(
         url,
         headers=headers,
         params={"path": f"/yacut/{filename}"},
     ) as response:
-        if response.status != 200:
-            msg = f"Ошибка получения download URL: {response.status}"
-            raise ConnectionError(msg)
+        if response.status != HTTPStatus.OK:
+            raise ConnectionError(DOWNLOAD_ERROR.format(response.status))
         download_data = await response.json()
         return download_data["href"]
