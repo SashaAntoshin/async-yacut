@@ -4,8 +4,13 @@ from wtforms import StringField, SubmitField, MultipleFileField
 from wtforms.fields import URLField
 from wtforms.validators import URL, DataRequired, Length, Optional, Regexp
 
-from .constants import MAX_SHORT_LENGTH, SHORT_PATTERN
-
+from .constants import (
+    MAX_SHORT_LENGTH,
+    SHORT_PATTERN,
+    ORIGINAL_LENGTH,
+    ALLOWED_FILES,
+    MAX_FILE_SIZE,
+)
 
 REQUIRED_FIELD_MESSAGE = "Обязательное поле"
 LENGTH_ERROR_MESSAGE = f"Не более {MAX_SHORT_LENGTH} символов"
@@ -27,7 +32,7 @@ class URLForm(FlaskForm):
         validators=[
             DataRequired(message=REQUIRED_FIELD_MESSAGE),
             URL(message=INVALID_URL_MESSAGE),
-            Length(max=2048),
+            Length(max=ORIGINAL_LENGTH),
         ],
     )
     custom_id = StringField(
@@ -51,8 +56,8 @@ class FileUploadForm(FlaskForm):
         FILES,
         validators=[
             FileRequired(message=MESSAGE),
-            FileSize(max_size=10 * 1024 * 1024),
-            FileAllowed(["jpg", "jpeg", "png", "gif", "pdf", "txt"]),
+            FileSize(max_size=MAX_FILE_SIZE),
+            FileAllowed(ALLOWED_FILES),
         ],
     )
     submit = SubmitField(UPLOAD)

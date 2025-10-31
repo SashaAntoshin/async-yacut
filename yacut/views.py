@@ -3,7 +3,6 @@ from http import HTTPStatus
 from flask import (
     Blueprint,
     abort,
-    current_app,
     flash,
     redirect,
     render_template,
@@ -29,7 +28,9 @@ def index():
 
     try:
         url_map = URLMap.create(
-            original=form.original_link.data, short=form.custom_id.data
+            original=form.original_link.data,
+            short=form.custom_id.data,
+            skip_validation=True,
         )
     except (ValueError, RuntimeError) as e:
         flash(str(e), "error")
@@ -37,7 +38,6 @@ def index():
 
     full_short_url = url_map.get_short()
 
-    flash(SHORT_COMPLETE)
     return render_template(
         "index.html", form=form, full_short_url=full_short_url
     )
@@ -53,28 +53,25 @@ def files_upload():
     files = form.files.data
 
     try:
-        results = upload_files_async(
-            files, current_app.config.get("DISK_TOKEN")
-        )
-
-        file_links = []
-        for file, result in zip(files, results):
-            filename, download_url = result
-            try:
-                url_map = URLMap.create(original=download_url, short=None)
-                file_links.append(
-                    {
-                        "name": file.filename,
-                        "full_short_url": url_map.get_short(),
-                    }
-                )
-            except (ValueError, RuntimeError) as e:
-                flash(UPLOAD_ERROR.format(str(e)), "error")
-        return render_template("files.html", form=form, file_links=file_links)
-
+        results = upload_files_async(files)
     except ConnectionError as e:
-        flash(CREATE_SHORT_ERROR.format(file.filename, str(e)), "error")
+        flash(CREATE_SHORT_ERROR.format("файлов", str(e)), "error")
         return render_template("files.html", form=form)
+
+    file_links = []
+    for file, result in zip(files, results):
+        filename, download_url = result
+        try:
+            url_map = URLMap.create(original=download_url, short=None)
+            file_links.append(
+                {
+                    "name": file.filename,
+                    "full_short_url": url_map.get_short(),
+                }
+            )
+        except (ValueError, RuntimeError) as e:
+            flash(UPLOAD_ERROR.format(str(e)), "error")
+    return render_template("files.html", form=form, file_links=file_links)
 
 
 @main_bp.route("/<short>")

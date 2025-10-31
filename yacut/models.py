@@ -2,7 +2,7 @@ from datetime import datetime
 import random
 
 from . import db
-from flask import current_app
+from flask import url_for
 
 from .constants import (
     ALLOWED_CHARS,
@@ -17,6 +17,8 @@ from .constants import (
 INVALID_SHORT_NAME = "Указано недопустимое имя для короткой ссылки"
 SHORT_ALREADY_EXISTS = "Предложенный вариант короткой ссылки уже существует."
 GENERATE_ERROR = "Не удалось сгенерировать уникальный short ID"
+URL_REQUIRED_FIELD = "Url не может быть пустой строкой"
+URL_ERROR = "Слишком длинный URL"
 
 
 class URLMap(db.Model):
@@ -28,23 +30,30 @@ class URLMap(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     @staticmethod
-    def create(original, short=None):
+    def create(original, short=None, skip_validation=False):
         """Создание и сохранение новой записи URLMap"""
+        if not original or not isinstance(original, str):
+            raise ValueError(URL_REQUIRED_FIELD)
+        if not skip_validation and len(original) > ORIGINAL_LENGTH:
+            raise ValueError(URL_ERROR)
         if not short:
-            short = URLMap.get_unique_short_id()
-        if len(short) > MAX_SHORT_LENGTH:
-            raise ValueError(INVALID_SHORT_NAME)
-        if not SHORT_PATTERN.match(short):
-            raise ValueError(INVALID_SHORT_NAME)
+            short = URLMap.get_unique_short()
+        if not skip_validation:
+            if len(short) > MAX_SHORT_LENGTH:
+                raise ValueError(INVALID_SHORT_NAME)
+            if not SHORT_PATTERN.match(short):
+                raise ValueError(INVALID_SHORT_NAME)
+
         if short in RESERVED_SHORTS or URLMap.get(short):
             raise ValueError(SHORT_ALREADY_EXISTS)
 
         url_map = URLMap(original=original, short=short)
         db.session.add(url_map)
+        db.session.commit()
         return url_map
 
     @staticmethod
-    def get_unique_short_id():
+    def get_unique_short():
         """Генерация уникального короткого ID"""
 
         for attempt in range(GENERATED_SHORT_ATTEMPTS):
@@ -59,7 +68,8 @@ class URLMap(db.Model):
         """Найти запись по короткой ссылке."""
         return URLMap.query.filter_by(short=short).first()
 
-    def get_short(self):
+    def get_short_url(self):
         """Полная кортка ссылка"""
-        base_url = current_app.config.get("BASE_URL", "http://localhost")
-        return f"{base_url}/{self.short}"
+        return url_for(
+            "main.redirect_to_url", short=self.short, _external=True
+        )

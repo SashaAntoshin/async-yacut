@@ -1,5 +1,5 @@
 import asyncio
-
+import os
 import aiohttp
 
 from http import HTTPStatus
@@ -12,33 +12,42 @@ URL_ERROR = "Ошибка получения URL: {}"
 UPLOAD_ERROR = "Ошибка загрузки: {}"
 DOWNLOAD_ERROR = "Ошибка получения download URL: {}"
 
+DISK_TOKEN = os.getenv("DISK_TOKEN")
 
-async def upload_files(files, token):
+
+def make_headers():
+    if not DISK_TOKEN:
+        raise EnvironmentError("DISK_TOKEN не найден")
+    return {"Authorization": AUTH_HEADER.format(DISK_TOKEN)}
+
+
+async def upload_files(files):
     """Асинхронная загрузка нескольких файлов."""
     async with aiohttp.ClientSession() as session:
-        tasks = [upload_single_file(session, file, token) for file in files]
+        tasks = [upload_single_file(session, file) for file in files]
         return await asyncio.gather(*tasks, return_exceptions=True)
 
 
-def upload_files_async(files, token):
+def upload_files_async(files):
     """Асинхронная загрузка файлов на Яндекс Диск."""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    results = loop.run_until_complete(upload_files(files, token))
+    results = loop.run_until_complete(upload_files(files))
     loop.close()
     return results
 
 
-async def upload_single_file(session, file, token):
+async def upload_single_file(session, file):
     """Загрузка одного файла на Яндекс Диск."""
-    headers = {"Authorization": AUTH_HEADER.format(token)}
+    headers = make_headers()
     params = {"path": f"/yacut/{file.filename}", "overwrite": "true"}
 
     upload_url = await get_upload_url(session, headers, params)
     await upload_file_content(session, upload_url, headers, file)
-    download_url = await get_download_url(session, headers, file.filename)
 
-    return file.filename, download_url
+    return file.filename, await get_download_url(
+        session, headers, file.filename
+    )
 
 
 async def get_upload_url(session, headers, params):
@@ -73,5 +82,4 @@ async def get_download_url(session, headers, filename):
     ) as response:
         if response.status != HTTPStatus.OK:
             raise ConnectionError(DOWNLOAD_ERROR.format(response.status))
-        download_data = await response.json()
-        return download_data["href"]
+        return (await response.json())["href"]
