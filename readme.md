@@ -2,6 +2,10 @@
 
 АНТОШИН АЛЕКСАНДР
 
+## Контакты:
+
+Telegram: @globe_s
+
 ## Техно - стек:
 
 - **Backend**: Python 3.8+, Flask

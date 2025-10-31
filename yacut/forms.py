@@ -1,35 +1,39 @@
 from flask_wtf import FlaskForm
-from flask_wtf.file import FileField, FileRequired
-from wtforms import StringField, SubmitField
+from flask_wtf.file import FileRequired
+from wtforms import StringField, SubmitField, MultipleFileField
 from wtforms.fields import URLField
 from wtforms.validators import URL, DataRequired, Length, Optional, Regexp
 
-from .constants import (
-    ALLOWED_CHARS,
-    ID_ERROR_MESSAGE,
-    INVALID_URL_MESSAGE,
-    LENGTH_ERROR_MESSAGE,
-    MAX_SHORT_ID_LENGTH,
-    REQUIRED_FIELD_MESSAGE,
-    SUBMIT_LABEL,
-)
+from .constants import ALLOWED_CHARS, MAX_SHORT_LENGTH
+
+
+REQUIRED_FIELD_MESSAGE = "Обязательное поле"
+LENGTH_ERROR_MESSAGE = f"Не более {MAX_SHORT_LENGTH} символов"
+INVALID_URL_MESSAGE = "Некорректная ссылка"
+SUBMIT_LABEL = "Создать"
+ID_ERROR_MESSAGE = "Допустимы только латинские буквы и цифры"
+ORIGINAL_LABEL = "Длинная ссылка"
+SHORT = "Ваш вариант короткой ссылки"
+FILES = "Файлы"
+UPLOAD = "Загрузить"
+MESSAGE = "Выберите файлы"
 
 
 class URLForm(FlaskForm):
     """Основная форма."""
 
     original_link = URLField(
-        "Длинная ссылка",
+        ORIGINAL_LABEL,
         validators=[
             DataRequired(message=REQUIRED_FIELD_MESSAGE),
             URL(message=INVALID_URL_MESSAGE),
         ],
     )
     custom_id = StringField(
-        "Ваш вариант короткой ссылки",
+        SHORT,
         validators=[
             Optional(),
-            Length(max=MAX_SHORT_ID_LENGTH, message=LENGTH_ERROR_MESSAGE),
+            Length(max=MAX_SHORT_LENGTH, message=LENGTH_ERROR_MESSAGE),
             Regexp(
                 f"^[{ALLOWED_CHARS}]*$",
                 message=ID_ERROR_MESSAGE,
@@ -42,7 +46,7 @@ class URLForm(FlaskForm):
 class FileUploadForm(FlaskForm):
     """Форма загрузки файлов."""
 
-    files = FileField(
-        "Файлы", validators=[FileRequired(message="Выберите файлы")]
+    files = MultipleFileField(
+        FILES, validators=[FileRequired(message=MESSAGE)]
     )
-    submit = SubmitField("Загрузить")
+    submit = SubmitField(UPLOAD)
