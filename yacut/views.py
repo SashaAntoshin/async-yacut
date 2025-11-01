@@ -30,16 +30,14 @@ def index():
         url_map = URLMap.create(
             original=form.original_link.data,
             short=form.custom_id.data,
-            skip_validation=True,
+            skip_validation=False,
         )
     except (ValueError, RuntimeError) as e:
         flash(str(e), "error")
         return render_template("index.html", form=form)
 
-    full_short_url = url_map.get_short_url()
-
     return render_template(
-        "index.html", form=form, full_short_url=full_short_url
+        "index.html", form=form, full_short_url=url_map.get_short_url()
     )
 
 
@@ -54,23 +52,22 @@ def files_upload():
 
     try:
         results = upload_files_async(files)
-    except ConnectionError as e:
-        flash(CREATE_SHORT_ERROR.format("файлов", str(e)), "error")
+    except Exception as e:
+        flash(CREATE_SHORT_ERROR.format("файлов", e), "error")
         return render_template("files.html", form=form)
-
-    file_links = []
-    for file, result in zip(files, results):
-        filename, download_url = result
-        try:
-            url_map = URLMap.create(original=download_url, short=None)
-            file_links.append(
-                {
-                    "name": file.filename,
-                    "full_short_url": url_map.get_short_url(),
-                }
-            )
-        except (ValueError, RuntimeError) as e:
-            flash(UPLOAD_ERROR.format(str(e)), "error")
+    for result in results:
+        if isinstance(result, Exception):
+            flash(UPLOAD_ERROR.format(result), "error")
+            return render_template("files.html", form=form)
+    file_links = [
+        {
+            "name": file.filename,
+            "full_short_url": URLMap.create(
+                original=download_url, short=None
+            ).get_short_url(),
+        }
+        for file, (filename, download_url) in zip(files, results)
+    ]
     return render_template("files.html", form=form, file_links=file_links)
 
 
