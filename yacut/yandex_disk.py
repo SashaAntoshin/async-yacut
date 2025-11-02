@@ -1,27 +1,30 @@
 import asyncio
 import os
-import aiohttp
-
 from http import HTTPStatus
+
+import aiohttp
 
 
 DISK_TOKEN = os.getenv("DISK_TOKEN")
 
-AUTH_HEADER = f"OAuth {os.getenv('DISK_TOKEN')}"
-UPLOAD_URL = "https://cloud-api.yandex.net/v1/disk/resources/upload"
-DOWNLOAD_URL = "https://cloud-api.yandex.net/v1/disk/resources/download"
+YANDEX_BASE = os.getenv("YANDEX_API_BASE", "https://cloud-api.yandex.net")
+API_VERSION = os.getenv("API_VERSION", "v1")
+
+
+UPLOAD_URL = f"{YANDEX_BASE}/{API_VERSION}/disk/resources/upload"
+DOWNLOAD_URL = f"{YANDEX_BASE}/{API_VERSION}/disk/resources/download"
 URL_ERROR = "Ошибка получения URL: {}"
 UPLOAD_ERROR = "Ошибка загрузки: {}"
 DOWNLOAD_ERROR = "Ошибка получения download URL: {}"
 
-HEADERS = {"Authorization": AUTH_HEADER}
+HEADERS = {"Authorization": f"OAuth {DISK_TOKEN}"}
 
 
 async def upload_files(files):
     """Асинхронная загрузка нескольких файлов."""
     async with aiohttp.ClientSession() as session:
         tasks = [upload_single_file(session, file) for file in files]
-        return await asyncio.gather(*tasks, return_exceptions=True)
+        return await asyncio.gather(*tasks)
 
 
 def upload_files_async(files):
@@ -52,7 +55,7 @@ async def get_upload_url(session, params):
         params=params,
     ) as response:
         if response.status != HTTPStatus.OK:
-            raise RuntimeError(URL_ERROR.format(response.status))
+            raise RuntimeError(UPLOAD_ERROR.format(response.status))
         return (await response.json())["href"]
 
 
@@ -63,7 +66,7 @@ async def upload_file_content(session, upload_url, file):
         upload_url, headers=HEADERS, data=file_content
     ) as response:
         if response.status not in (HTTPStatus.CREATED, HTTPStatus.ACCEPTED):
-            raise ValueError(UPLOAD_ERROR.format(response.status))
+            raise RuntimeError(UPLOAD_ERROR.format(response.status))
 
 
 async def get_download_url(session, filename):
@@ -75,5 +78,5 @@ async def get_download_url(session, filename):
         params={"path": f"/yacut/{filename}"},
     ) as response:
         if response.status != HTTPStatus.OK:
-            raise ValueError(DOWNLOAD_ERROR.format(response.status))
+            raise RuntimeError(DOWNLOAD_ERROR.format(response.status))
         return (await response.json())["href"]

@@ -27,18 +27,18 @@ def index():
         return render_template("index.html", form=form)
 
     try:
-        url_map = URLMap.create(
-            original=form.original_link.data,
-            short=form.custom_id.data,
-            skip_validation=False,
+        return render_template(
+            "index.html",
+            form=form,
+            full_short_url=URLMap.create(
+                original=form.original_link.data,
+                short=form.custom_id.data,
+                skip_validation=False,
+            ).get_short_url(),
         )
     except (ValueError, RuntimeError) as e:
         flash(str(e), "error")
         return render_template("index.html", form=form)
-
-    return render_template(
-        "index.html", form=form, full_short_url=url_map.get_short_url()
-    )
 
 
 @main_bp.route("/files", methods=["GET", "POST"])
@@ -55,20 +55,24 @@ def files_upload():
     except Exception as e:
         flash(CREATE_SHORT_ERROR.format("файлов", e), "error")
         return render_template("files.html", form=form)
-    for result in results:
-        if isinstance(result, Exception):
-            flash(UPLOAD_ERROR.format(result), "error")
-            return render_template("files.html", form=form)
-    file_links = [
-        {
-            "name": file.filename,
-            "full_short_url": URLMap.create(
-                original=download_url, short=None
-            ).get_short_url(),
-        }
-        for file, (filename, download_url) in zip(files, results)
-    ]
-    return render_template("files.html", form=form, file_links=file_links)
+    try:
+        return render_template(
+            "files.html",
+            form=form,
+            file_links=[
+                {
+                    "name": file.filename,
+                    "full_short_url": URLMap.create(
+                        original=download_url,
+                        short=None
+                    ).get_short_url(),
+                }
+                for file, (filename, download_url) in zip(files, results)
+            ],
+        )
+    except Exception as e:
+        flash(CREATE_SHORT_ERROR.format("ссылок", e), "error")
+        return render_template("files.html", form=form)
 
 
 @main_bp.route("/<short>")

@@ -1,8 +1,8 @@
 from datetime import datetime
 import random
+import re
 
 from flask import url_for
-import re
 
 from . import db
 from .constants import (
@@ -39,8 +39,6 @@ class URLMap(db.Model):
         if not short:
             short = URLMap.get_unique_short()
         if not skip_validation and short is not None:
-            if len(short) > MAX_SHORT_LENGTH:
-                raise ValueError(INVALID_SHORT_NAME)
             if isinstance(SHORT_PATTERN, str):
                 if not re.fullmatch(SHORT_PATTERN, short):
                     raise ValueError(INVALID_SHORT_NAME)
