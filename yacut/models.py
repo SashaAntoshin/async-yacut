@@ -1,6 +1,5 @@
 from datetime import datetime
 import random
-import re
 
 from flask import url_for
 
@@ -13,14 +12,16 @@ from .constants import (
     SHORT_LENGTH,
     SHORT_PATTERN,
     RESERVED_SHORTS,
-    REDIRECT_ENPOINT
+    REDIRECT_ENPOINT,
 )
 
 INVALID_SHORT_NAME = "Указано недопустимое имя для короткой ссылки"
 SHORT_ALREADY_EXISTS = "Предложенный вариант короткой ссылки уже существует."
-GENERATE_ERROR = "Не удалось сгенерировать уникальный short ID"
-URL_REQUIRED_FIELD = "Url не может быть пустой строкой"
-URL_ERROR = "Слишком длинный URL"
+GENERATE_ERROR = (
+    f"Не удалось сгенерировать уникальный short ID "
+    f"после {GENERATED_SHORT_ATTEMPTS} попыток"
+)
+ORIGINAL_URL_TOO_LONG = "Слишком длинный URL"
 
 
 class URLMap(db.Model):
@@ -32,19 +33,18 @@ class URLMap(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     @staticmethod
-    def create(original, short=None, skip_validation=False):
-        """Создание и сохранение новой записи URLMap"""
-        if not skip_validation and len(original) > ORIGINAL_LENGTH:
-            raise ValueError(URL_ERROR)
-        if not short:
-            short = URLMap.get_unique_short()
-        if not skip_validation and short is not None:
-            if isinstance(SHORT_PATTERN, str):
-                if not re.fullmatch(SHORT_PATTERN, short):
+    def create(original, short=None, validate=True):
+        """Создание и сохранение новой записи URLMap."""
+        if validate:
+            if len(original) > ORIGINAL_LENGTH:
+                raise ValueError(ORIGINAL_URL_TOO_LONG)
+            if short:
+                if len(short) > MAX_SHORT_LENGTH:
                     raise ValueError(INVALID_SHORT_NAME)
-            else:
                 if not SHORT_PATTERN.fullmatch(short):
                     raise ValueError(INVALID_SHORT_NAME)
+        if not short:
+            short = URLMap.get_unique_short()
         if short in RESERVED_SHORTS or URLMap.get(short):
             raise ValueError(SHORT_ALREADY_EXISTS)
 
@@ -56,10 +56,8 @@ class URLMap(db.Model):
     @staticmethod
     def get_unique_short():
         """Генерация уникального короткого ID"""
-
         for attempt in range(GENERATED_SHORT_ATTEMPTS):
             short = "".join(random.choices(ALLOWED_CHARS, k=SHORT_LENGTH))
-
             if short not in RESERVED_SHORTS and not URLMap.get(short):
                 return short
         raise RuntimeError(GENERATE_ERROR)
@@ -71,5 +69,4 @@ class URLMap(db.Model):
 
     def get_short_url(self):
         """Полная кортка ссылка"""
-        return url_for(REDIRECT_ENPOINT,
-                       short=self.short, _external=True)
+        return url_for(REDIRECT_ENPOINT, short=self.short, _external=True)

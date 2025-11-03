@@ -5,6 +5,12 @@ from flask import jsonify, render_template, request
 from . import db
 
 
+class YandexDiskError(Exception):
+    """Кастомное исключение для ошибок Яндекс Диска"""
+
+    pass
+
+
 class InvalidAPIUsage(Exception):
     """Класс обработки ошибок."""
 
@@ -21,10 +27,23 @@ class InvalidAPIUsage(Exception):
         return {"message": self.message}
 
 
-def init_error_handlers(app):
+def init_error_handlers(app):  # noqa: C901
     @app.errorhandler(InvalidAPIUsage)
     def handle_invalid_api_usage(error):
         return jsonify(error.to_dict()), error.status_code
+
+    @app.errorhandler(YandexDiskError)
+    def handle_yandex_disk_error(error):
+        if request.path.startswith("/api/"):
+            return jsonify({"message": str(error)}), HTTPStatus.BAD_REQUEST
+        return (
+            render_template(
+                "error.html",
+                error_code=HTTPStatus.BAD_REQUEST,
+                error_message=str(error),
+            ),
+            HTTPStatus.BAD_REQUEST,
+        )
 
     @app.errorhandler(HTTPStatus.NOT_FOUND)
     def page_not_found(error):

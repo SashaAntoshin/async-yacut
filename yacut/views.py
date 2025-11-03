@@ -33,7 +33,7 @@ def index():
             full_short_url=URLMap.create(
                 original=form.original_link.data,
                 short=form.custom_id.data,
-                skip_validation=False,
+                validate=True,
             ).get_short_url(),
         )
     except (ValueError, RuntimeError) as e:
@@ -51,26 +51,23 @@ def files_upload():
     files = form.files.data
 
     try:
-        results = upload_files_async(files)
-    except Exception as e:
+        yadisk_results = upload_files_async(files)
+        yadisk_urls = [url for _, url in yadisk_results]
+    except (ValueError, RuntimeError) as e:
         flash(CREATE_SHORT_ERROR.format("файлов", e), "error")
         return render_template("files.html", form=form)
     try:
-        return render_template(
-            "files.html",
-            form=form,
-            file_links=[
-                {
-                    "name": file.filename,
-                    "full_short_url": URLMap.create(
-                        original=download_url,
-                        short=None
-                    ).get_short_url(),
-                }
-                for file, (filename, download_url) in zip(files, results)
-            ],
-        )
-    except Exception as e:
+        file_links = [
+            dict(
+                name=file.filename,
+                full_short_url=URLMap.create(
+                    original=url, short=None
+                ).get_short_url(),
+            )
+            for file, url in zip(files, yadisk_urls)
+        ]
+        return render_template("files.html", form=form, file_links=file_links)
+    except (ValueError, RuntimeError) as e:
         flash(CREATE_SHORT_ERROR.format("ссылок", e), "error")
         return render_template("files.html", form=form)
 
